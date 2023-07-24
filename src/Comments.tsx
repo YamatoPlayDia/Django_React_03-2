@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Button, Form, ListGroup, Container } from "react-bootstrap";
+import { useParams, useNavigate } from 'react-router-dom';
+
 
 interface Comment {
     id: number;
@@ -10,6 +13,7 @@ interface Comment {
         id: number;
         username: string;
     };
+    deleted_at: string | null;  // deleted_at を追加
 }
 
 interface NewComment {
@@ -17,67 +21,76 @@ interface NewComment {
     content: string;
 }
 
-const Comments: React.FC = ({ match, history }: any) => {
+const Comments: React.FC = () => {
+    const navigate = useNavigate();
+    const { id: idString } = useParams();
+    const id = Number(idString);
+    if (isNaN(id)) {
+        throw new Error("Invalid note ID.");
+    }
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState<NewComment>({
-        note: match.params.id,
+        note: id,
         content: "",
     });
 
     useEffect(() => {
         const token = localStorage.getItem("token");
         axios
-        .get(`http://localhost:8000/comments/`, {
+        .get(`${import.meta.env.VITE_API_BASE_URL}/comments/?note=${id}`, {
             headers: { Authorization: `Token ${token}` },
         })
         .then((response) => {
-            setComments(
-            response.data.filter(
-                (comment: Comment) => comment.note === parseInt(match.params.id)
-            )
-            );
+            setComments(response.data);
         });
-    }, [match.params.id]);
+    }, [id]);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setNewComment({ ...newComment, content: event.target.value });
     };
-
     const handleCreate = () => {
         const token = localStorage.getItem("token");
         axios
-        .post(`http://localhost:8000/comments/`, newComment, {
+        .post(`${import.meta.env.VITE_API_BASE_URL}/comments/`, newComment, {
             headers: { Authorization: `Token ${token}` },
         })
-        .then((response) => setComments([...comments, response.data]));
+        .then((response) => setComments([...comments, response.data]))
+        .catch((error) => console.error(error));
     };
 
     const handleDelete = (commentId: number) => {
         const token = localStorage.getItem("token");
         axios
-        .patch( // Assuming the API endpoint for logical deletion
-            `http://localhost:8000/comments/${commentId}/`,
-            { deleted_at: new Date().toISOString() }, // Assuming this is the way to mark a comment as deleted
-            { headers: { Authorization: `Token ${token}` } }
+        .delete(  // PATCH を DELETE に変更
+            `${import.meta.env.VITE_API_BASE_URL}/comments/${commentId}/`,
+            { headers: { Authorization: `Token ${token}` }, }
         )
-        .then(() =>
-            setComments(comments.filter((comment) => comment.id !== commentId))
-        );
+        .then(() => {
+            axios
+            .get(`${import.meta.env.VITE_API_BASE_URL}/comments/?note=${id}`, {
+                headers: { Authorization: `Token ${token}` },
+            })
+            .then((response) => {
+                setComments(response.data);
+            });
+        });
     };
 
     return (
-        <div>
-        <h1>Comments</h1>
-        <textarea value={newComment.content} onChange={handleInputChange} />
-        <button onClick={handleCreate}>Create</button>
-        {comments.map((comment) => (
-            <div key={comment.id}>
-            <p>{comment.content} (by {comment.created_by.username})</p>
-            <button onClick={() => handleDelete(comment.id)}>Delete</button>
-            </div>
-        ))}
-        <button onClick={() => history.goBack()}>Go Back</button>
-        </div>
+        <Container className="mt-5">
+            <h1>Comments</h1>
+            <Form.Control as="textarea" value={newComment.content} onChange={handleInputChange} />
+            <Button variant="primary" onClick={handleCreate}>Create</Button>
+            <ListGroup>
+                {comments.map((comment) => (
+                    <ListGroup.Item key={comment.id}>
+                        {comment.content} (by {comment.created_by.username})
+                        <Button variant="danger" onClick={() => handleDelete(comment.id)}>Delete</Button>
+                    </ListGroup.Item>
+                ))}
+            </ListGroup>
+            <Button variant="secondary" onClick={() => navigate(-1)}>Go Back</Button>
+        </Container>
     );
 };
 

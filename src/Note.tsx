@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button, Card } from "react-bootstrap";
 
 interface Note {
     id: number;
@@ -8,39 +9,45 @@ interface Note {
     content: string;
 }
 
-const Note = () => {
-    const { id } = useParams();
+const Notes = () => {
+    const [notes, setNotes] = useState<Note[]>([]);
     const navigate = useNavigate();
-    const [note, setNote] = useState<Note | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
         axios
-            .get(`http://localhost:8000/notes/${id}/`, {
+            .get(`${import.meta.env.VITE_API_BASE_URL}/notes/`, {
             headers: { Authorization: `Token ${token}` },
             })
-            .then((response) => setNote(response.data));
-    }, [id]);
+            .then((response) => setNotes(response.data));
+    }, []);
 
-    const handleDelete = () => {
+    const handleDelete = (id: number) => {
         const token = localStorage.getItem("token");
         axios
-            .delete(`http://localhost:8000/notes/${id}/`, {
+            .delete(`${import.meta.env.VITE_API_BASE_URL}/notes/${id}/`, {
             headers: { Authorization: `Token ${token}` },
             })
-            .then(() => navigate('/'));
+            .then(() => {
+                setNotes(notes.filter(note => note.id !== id));
+            });
     };
 
-    return note ? (
+    return (
         <div>
-        <h1>{note.title}</h1>
-        <p>{note.content}</p>
-        <button onClick={handleDelete}>Delete</button>
-        <Link to={`/note/${note.id}/comments`}>View Comments</Link>
+            {notes.map(note => (
+                <Card key={note.id}>
+                    <Card.Header as="h5">{note.title}</Card.Header>
+                    <Card.Body>
+                        <Card.Text>{note.content}</Card.Text>
+                        <Button variant="danger" onClick={() => handleDelete(note.id)}>Delete</Button>
+                        <Link to={`/note/${note.id}/comments`}>View Comments</Link>
+                    </Card.Body>
+                </Card>
+            ))}
+            <Button variant="secondary" onClick={() => navigate(-1)}>Go Back</Button>
         </div>
-    ) : (
-        <p>Loading...</p>
     );
 }
 
-export default Note;
+export default Notes;
