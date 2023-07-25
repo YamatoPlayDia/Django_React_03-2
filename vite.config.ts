@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     manifest: true,
     rollupOptions: {
-      input: 'src/index.html',
+      input: 'index.html',
     },
   },
   server: {
