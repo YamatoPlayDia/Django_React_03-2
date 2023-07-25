@@ -8,7 +8,7 @@ const Home: React.FC = () => {
     const [newNote, setNewNote] = useState("");
     const [newTitle, setNewTitle] = useState("");
     const [success, setSuccess] = useState("");
-    const [token, setToken] = useState(localStorage.getItem("token"));
+    const [token] = useState(localStorage.getItem("token"));
 
     useEffect(() => {
         if (token) {
