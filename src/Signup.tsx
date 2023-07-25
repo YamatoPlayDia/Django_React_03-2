@@ -24,12 +24,13 @@ const Signup: React.FC = () => {
         event.preventDefault();
         axios
         .post(`${import.meta.env.VITE_API_BASE_URL}/dj-rest-auth/registration/`, { username, password1: password, password2: password, email })
-        .then((response) => {
-            localStorage.setItem("token", response.data.token);
+        .then(() => {
+            // Log out the user by removing the token from localStorage
+            localStorage.removeItem("token");
             navigate("/");
         })
         .catch((error) => {
-          // エラーレスポンスの本文をログ出力
+          // Log the error response body
             if (error.response) {
                 console.error(error.response.data);
             } else {
